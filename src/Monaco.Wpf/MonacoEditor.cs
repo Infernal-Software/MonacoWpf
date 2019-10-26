@@ -157,19 +157,56 @@ namespace Monaco.Wpf
             _handlers.Remove(handler);
             EmbeddedHttpServer.RemoveHandler(handler);
         }
+
+        public void InvokeScript(string name, params object[] args)
+        {
+            Action invoke = () =>
+                _browser.InvokeScript(name, args);
+                
+
+            if (_isInitialized && !_isDisposed)
+                invoke();
+            else
+                _afterInits.Add(invoke);
+        }
+
         private string _lang = "plaintext";
         public void SetLanguage(string id)
         {
             _lang = id;
-            if (_isInitialized && !_isDisposed)
-            {
-                _browser.InvokeScript("editorSetLang", id);
-            }
-            else
-            {
-                _afterInits.Add(() => _browser.InvokeScript("editorSetLang", id));
-            }
+            InvokeScript("editorSetLang", id);
         }
+
+        // Major credit to op0x59 on his implementation of Monaco
+        public void SetTheme(string theme) =>
+            InvokeScript("SetTheme", theme);
+
+
+        public void AddIntellisense(string label, string type, string description, string insert) =>
+            InvokeScript("AddIntellisense", new object[] {label, type, description, insert});
+
+
+        public void ShowSyntaxError(int line, int column, int endLine, int endColumn, string message) =>
+            InvokeScript("ShowErr", new object[] { line, column, endLine, endColumn, message });
+
+
+        public void SetScroll(int lineNumber) =>
+            InvokeScript("SetScroll", new object[] { lineNumber });
+
+        public void UpdateSettings(MonacoEditorSettings settings)
+        {
+            InvokeScript("SwitchMinimap", new object[] { settings.MinimapEnabled });
+            InvokeScript("SwitchReadonly", new object[] { settings.ReadOnly });
+            InvokeScript("SwitchRenderWhitespace", new object[] { settings.RenderWhitespace });
+            InvokeScript("SwitchLinks", new object[] { settings.Links });
+            InvokeScript("SwitchLineHeight", new object[] { settings.LineHeight });
+            InvokeScript("SwitchFontSize", new object[] { settings.FontSize });
+            InvokeScript("SwitchFolding", new object[] { settings.Folding });
+            InvokeScript("SwitchAutoIndent", new object[] { settings.AutoIndent });
+            InvokeScript("SwitchFontFamily", new object[] { settings.FontFamily });
+            InvokeScript("SwitchFontLigatures", new object[] { settings.FontLigatures });
+        }
+
         public List<EditorLanguage> GetEditorLanguages()
         {
             if (_isDisposed)
